@@ -3,9 +3,17 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import engine, get_db
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("app/static/index.html")
 
 # GET all tasks
 @app.get("/tasks", response_model=list[schemas.TaskResponse])
