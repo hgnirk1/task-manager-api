@@ -1,29 +1,32 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import engine, get_db
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/")
 def root():
     return FileResponse("app/static/index.html")
 
-# GET all tasks
+# GET all tasks for a session
 @app.get("/tasks", response_model=list[schemas.TaskResponse])
-def get_tasks(db: Session = Depends(get_db)):
-    return db.query(models.Task).all()
+def get_tasks(session_id: str, db: Session = Depends(get_db)):
+    return db.query(models.Task).filter(models.Task.session_id == session_id).all()
 
 # GET a single task by ID
 @app.get("/tasks/{task_id}", response_model=schemas.TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+def get_task(task_id: int, session_id: str, db: Session = Depends(get_db)):
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.session_id == session_id
+    ).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
@@ -39,8 +42,11 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
 
 # PUT (update) a task by ID
 @app.put("/tasks/{task_id}", response_model=schemas.TaskResponse)
-def update_task(task_id: int, updated: schemas.TaskUpdate, db: Session = Depends(get_db)):
-    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+def update_task(task_id: int, session_id: str, updated: schemas.TaskUpdate, db: Session = Depends(get_db)):
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.session_id == session_id
+    ).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     for key, value in updated.model_dump().items():
@@ -51,8 +57,11 @@ def update_task(task_id: int, updated: schemas.TaskUpdate, db: Session = Depends
 
 # DELETE a task by ID
 @app.delete("/tasks/{task_id}", status_code=204)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+def delete_task(task_id: int, session_id: str, db: Session = Depends(get_db)):
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.session_id == session_id
+    ).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     db.delete(task)

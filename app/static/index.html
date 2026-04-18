@@ -95,7 +95,6 @@
 
     <div id="message"></div>
 
-    <!-- Create Task -->
     <div class="card">
       <h2>➕ Create New Task</h2>
       <input type="text" id="title" placeholder="Task title" />
@@ -107,14 +106,12 @@
       <button class="btn-primary" onclick="createTask()">Create Task</button>
     </div>
 
-    <!-- Task List -->
     <div class="card">
       <h2>📋 All Tasks</h2>
       <div id="tasks-list">Loading...</div>
     </div>
   </div>
 
-  <!-- Edit Modal -->
   <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center;">
     <div style="background:white; border-radius:12px; padding:28px; width:90%; max-width:480px;">
@@ -138,6 +135,17 @@
       ? 'http://127.0.0.1:8000'
       : 'https://task-manager-api-32z1.onrender.com';
 
+    function getSessionId() {
+      let sessionId = localStorage.getItem('task_session_id');
+      if (!sessionId) {
+        sessionId = 'session_' + Math.random().toString(36).substr(2, 16);
+        localStorage.setItem('task_session_id', sessionId);
+      }
+      return sessionId;
+    }
+
+    const SESSION_ID = getSessionId();
+
     function showMessage(text, type) {
       const el = document.getElementById('message');
       el.textContent = text;
@@ -146,7 +154,7 @@
     }
 
     async function loadTasks() {
-      const res = await fetch(`${API}/tasks`);
+      const res = await fetch(`${API}/tasks?session_id=${SESSION_ID}`);
       const tasks = await res.json();
       const container = document.getElementById('tasks-list');
       if (tasks.length === 0) {
@@ -176,7 +184,8 @@
         body: JSON.stringify({
           title,
           description: document.getElementById('description').value,
-          status: document.getElementById('status').value
+          status: document.getElementById('status').value,
+          session_id: SESSION_ID
         })
       });
       document.getElementById('title').value = '';
@@ -187,7 +196,7 @@
 
     async function deleteTask(id) {
       if (!confirm('Delete this task?')) return;
-      await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+      await fetch(`${API}/tasks/${id}?session_id=${SESSION_ID}`, { method: 'DELETE' });
       showMessage('Task deleted!', 'success');
       loadTasks();
     }
@@ -206,7 +215,7 @@
 
     async function saveEdit() {
       const id = document.getElementById('edit-id').value;
-      await fetch(`${API}/tasks/${id}`, {
+      await fetch(`${API}/tasks/${id}?session_id=${SESSION_ID}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

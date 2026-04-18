@@ -8,13 +8,14 @@ class TaskBase(BaseModel):
     status: str = "todo"
 
 class TaskCreate(TaskBase):
-    pass
+    session_id: str
 
 class TaskUpdate(TaskBase):
     pass
 
 class TaskResponse(TaskBase):
     id: int
+    session_id: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
