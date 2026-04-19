@@ -99,3 +99,12 @@ def test_session_isolation():
     })
     response = client.get("/tasks?session_id=session_B")
     assert response.json() == []
+
+def test_invalid_status():
+    response = client.post("/tasks", json={
+        "title": "Bad task",
+        "description": "Invalid status",
+        "status": "banana",
+        "session_id": SESSION_ID
+    })
+    assert response.status_code == 422
